@@ -1,0 +1,49 @@
+import wixUsers from 'wix-users';
+import wixData from 'wix-data';
+
+$w.onReady(async () => {
+    const currentUser = wixUsers.currentUser;
+
+    // 1️⃣ Ensure the user is logged in
+    if (!currentUser.loggedIn) {
+        console.log("User not logged in");
+        $w("#repeater1").collapse();
+        $w("#text94").text = "Not logged in";
+        $w("#text93").text = "$0.00";
+        return;
+    }
+
+    const userId = currentUser.id;
+    $w("#text94").text = userId; // display user ID
+
+    // 2️⃣ Query the LEADS collection only for items assigned to this user
+    const leadsResults = await wixData.query("LEADS")
+        .eq("ownerId", userId) // ownerId must be a Reference field
+        .find();
+
+    if (leadsResults.items.length === 0) {
+        console.log("No leads found for this member");
+        $w("#repeater1").collapse(); // hide repeater if no items
+    } else {
+        $w("#repeater1").data = leadsResults.items;
+
+        $w("#repeater1").onItemReady(($item, itemData) => {
+            $item("#text89").text = itemData.name;
+            $item("#text90").text = itemData.email;
+            $item("#text91").text = itemData.notes;
+        });
+    }
+
+    // 3️⃣ Query the Customers collection by signed-in user ID
+    const customerResults = await wixData.query("Customers")
+        .eq("id", userId) // filter by 'id' column
+        .find();
+
+    if (customerResults.items.length === 0) {
+        // No match found → show $0.00
+        $w("#text93").text = "$0.00";
+    } else {
+        const balance = customerResults.items[0].balance || 0;
+        $w("#text93").text = `$${balance.toFixed(2)}`;
+    }
+});
