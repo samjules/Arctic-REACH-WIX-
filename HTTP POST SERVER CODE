@@ -1,0 +1,49 @@
+/***********************
+http-functions.js
+Expose Site API for external requests
+***********************/
+
+import { ok, badRequest } from 'wix-http-functions';
+import wixData from 'wix-data';
+
+/**
+ * GET test endpoint
+ * Visit in browser: https://arctic-reach.com/_functions/testWebhook
+ */
+export function get_testWebhook(request) {
+    const response = {
+        headers: { "Content-Type": "application/json" }
+    };
+
+    try {
+        response.body = { message: "Connected!" };
+        return ok(response);
+    } catch (err) {
+        response.body = { error: err.message };
+        return badRequest(response);
+    }
+}
+
+/**
+ * POST endpoint for Zapier
+ * Zapier can POST JSON directly here:
+ * https://arctic-reach.com/_functions/receiveZapierData
+ */
+export async function post_receiveZapierData(request) {
+    const response = { headers: { "Content-Type": "application/json" } };
+
+    try {
+        // Parse the JSON body sent by Zapier
+        const body = await request.body.json();
+
+        // Insert into your Wix collection
+        const saved = await wixData.insert("zapiercustomerdata", body);
+
+        // Return the inserted item
+        response.body = saved;
+        return ok(response);
+    } catch (err) {
+        response.body = { error: err.message };
+        return badRequest(response);
+    }
+}
